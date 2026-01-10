@@ -1,7 +1,10 @@
-agency,type,url
-農林水産省,RSS,https://www.maff.go.jp/j/new/rss.xml
-厚生労働省,RSS,https://www.mhlw.go.jp/stf/news.rdf
-経済産業省,RSS,https://www.meti.go.jp/press/atom.xml
-国土交通省,RSS,https://www.mlit.go.jp/report/index.rdf
-環境省,RSS,https://www.env.go.jp/rss/index.rdf
-文部科学省,RSS,https://www.mext.go.jp/rss/00000001.xml
+muni,url
+観光庁,https://www.mlit.go.jp/kankocho/index.html
+内閣官房,https://www.cas.go.jp/index.html
+内閣府地方創生,https://www.chisou.go.jp/sousei/news/index.html
+環境省,https://www.env.go.jp/guide/past_info.html
+国土交通省,https://www.mlit.go.jp/index.rdf
+農林水産省,https://www.maff.go.jp/rss.xml
+経済産業省,https://www.meti.go.jp/press/index.html
+中小企業庁,https://www.chusho.meti.go.jp/rss/index.xml
+厚生労働省,https://www.mhlw.go.jp/stf/news.rdf
