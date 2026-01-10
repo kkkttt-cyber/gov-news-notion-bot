@@ -2,16 +2,28 @@ name: Daily gov news to Notion
 
 on:
   schedule:
-    - cron: "0 15 * * *"  # JST 0:00
+    # JST 0:00 = UTC 15:00
+    - cron: "0 15 * * *"
   workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: gov-news-notion-bot
+  cancel-in-progress: false
 
 jobs:
   run:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
-      - uses: actions/setup-python@v5
+      - name: Setup Python
+        uses: actions/setup-python@v5
         with:
           python-version: "3.11"
 
@@ -25,4 +37,24 @@ jobs:
           NOTION_TOKEN: ${{ secrets.NOTION_TOKEN }}
           NOTION_DATABASE_ID: ${{ secrets.NOTION_DATABASE_ID }}
           TZ: Asia/Tokyo
-        run: python main.py
+          SOURCES_PATH: data/sources.csv
+          SEEN_PATH: data/seen_urls.txt
+        run: |
+          python main.py
+
+      - name: Commit seen urls
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+          # 台帳ファイルが無ければ作っておく（初回対策）
+          mkdir -p data
+          touch data/seen_urls.txt
+
+          git add data/seen_urls.txt
+
+          # 変更が無い場合は何もしない
+          git diff --cached --quiet && echo "No changes to commit." && exit 0
+
+          git commit -m "Update seen URLs"
+          git push
