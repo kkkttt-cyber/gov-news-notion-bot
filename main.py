@@ -50,13 +50,7 @@ def fetch_rss_items(rss_url: str, limit: int = 30):
             continue
         title = getattr(e, "title", None)
         published = getattr(e, "published", None) or getattr(e, "updated", None)
-        items.append(
-            {
-                "title": title,
-                "link": link,
-                "published": published,
-            }
-        )
+        items.append({"title": title, "link": link, "published": published})
     return items
 
 
@@ -64,6 +58,20 @@ def main():
     notion = get_notion_client()
     database_id = get_database_id()
 
+    # ===== テスト：Notionに1行書けるか（ここだけ実行）=====
+    upsert_page(
+        notion,
+        database_id,
+        title="【テスト】Notion書き込み確認",
+        url="https://example.com/test-notion-write",
+        agency="テスト省庁",
+        published_at_iso=None,
+    )
+    print("TEST WRITE DONE")
+    return
+    # =======================================================
+
+    # ※ return を消したら、以下のRSS処理が動きます
     sources_path = os.getenv("SOURCES_PATH", "data/sources.csv")
     sources = read_sources_csv(sources_path)
     if not sources:
