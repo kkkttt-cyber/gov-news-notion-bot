@@ -9,6 +9,26 @@ from dateutil import parser as dateparser
 from notion_client_util import get_database_id, get_notion_client, upsert_page
 
 
+SEEN_PATH = os.getenv("SEEN_PATH", "data/seen_urls.txt")
+
+
+def load_seen(path: str) -> set[str]:
+    try:
+        with open(path, "r", encoding="utf-8") as f:
+            return set(line.strip() for line in f if line.strip())
+    except FileNotFoundError:
+        return set()
+
+
+def append_seen(path: str, urls: list[str]):
+    if not urls:
+        return
+    os.makedirs(os.path.dirname(path), exist_ok=True)
+    with open(path, "a", encoding="utf-8") as f:
+        for u in urls:
+            f.write(u + "\n")
+
+
 def read_sources_csv(path: str):
     with open(path, "r", encoding="utf-8") as f:
         reader = csv.DictReader(f)
@@ -58,28 +78,19 @@ def main():
     notion = get_notion_client()
     database_id = get_database_id()
 
-    # ===== テスト：Notionに1行書けるか（ここだけ実行）=====
-    upsert_page(
-        notion,
-        database_id,
-        title="【テスト】Notion書き込み確認",
-        url="https://example.com/test-notion-write",
-        agency="テスト省庁",
-        published_at_iso=None,
-    )
-    print("TEST WRITE DONE")
-    return
-    # =======================================================
-
-    # ※ return を消したら、以下のRSS処理が動きます
+    # sources
     sources_path = os.getenv("SOURCES_PATH", "data/sources.csv")
     sources = read_sources_csv(sources_path)
     if not sources:
         raise RuntimeError(f"No sources found in {sources_path}")
 
+    # seen set
+    seen = load_seen(SEEN_PATH)
+
     created = 0
-    updated = 0
+    skipped_seen = 0
     errors = 0
+    newly_seen: list[str] = []
 
     for s in sources:
         agency = s["agency"]
@@ -93,6 +104,7 @@ def main():
         print(f"[FETCH] {agency} {url}")
         try:
             items = fetch_rss_items(url, limit=50)
+            print(f"[INFO] items={len(items)}")
         except Exception as e:
             errors += 1
             print(f"[ERROR] RSS parse failed: {agency} {url} {e}", file=sys.stderr)
@@ -100,11 +112,15 @@ def main():
 
         for it in items:
             link = it["link"]
+            if link in seen:
+                skipped_seen += 1
+                continue
+
             title = normalize_title(it.get("title"), link)
             published_iso = to_iso_date(it.get("published"))
 
             try:
-                res = upsert_page(
+                upsert_page(
                     notion,
                     database_id,
                     title=title,
@@ -112,15 +128,17 @@ def main():
                     agency=agency,
                     published_at_iso=published_iso,
                 )
-                if res == "created":
-                    created += 1
-                else:
-                    updated += 1
+                created += 1
+                seen.add(link)
+                newly_seen.append(link)
             except Exception as e:
                 errors += 1
-                print(f"[ERROR] Notion upsert failed: {agency} {link} {e}", file=sys.stderr)
+                print(f"[ERROR] Notion create failed: {agency} {link} {e}", file=sys.stderr)
 
-    print(f"Done. created={created} updated={updated} errors={errors}")
+    append_seen(SEEN_PATH, newly_seen)
+
+    print(f"Done. created={created} skipped_seen={skipped_seen} errors={errors}")
+    print(f"[INFO] seen_file={SEEN_PATH} newly_seen={len(newly_seen)}")
 
 
 if __name__ == "__main__":
