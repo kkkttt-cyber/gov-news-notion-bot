@@ -1,0 +1,5 @@
+notion-client
+feedparser
+python-dateutil
+requests
+pandas
