@@ -20,19 +20,36 @@ def get_database_id():
     return re.sub(r"[^0-9a-fA-F]", "", raw)
 
 
-def find_page_by_dup_key(notion, database_id, dup_key):
-    res = notion.databases.query(
-        database_id=database_id,
-        filter={
-            "property": "重複キー",
-            "rich_text": {"equals": dup_key},
-        },
-        page_size=1,
+def create_page(
+    notion,
+    database_id,
+    *,
+    title,
+    url,
+    agency,
+    published_at_iso,
+):
+    fetched_at = datetime.now(JST).isoformat()
+
+    props = {
+        "タイトル": {"title": [{"text": {"content": (title or "")[:200]}}]},
+        "URL": {"url": url},
+        "省庁": {"rich_text": [{"text": {"content": (agency or "")[:2000]}}]},
+        "取得日時": {"date": {"start": fetched_at}},
+        "重複キー": {"rich_text": [{"text": {"content": (url or "")[:2000]}}]},
+    }
+
+    if published_at_iso:
+        props["公開日"] = {"date": {"start": published_at_iso}}
+
+    notion.pages.create(
+        parent={"database_id": database_id},
+        properties=props,
     )
-    results = res.get("results", [])
-    return results[0] if results else None
+    return "created"
 
 
+# 既存コード互換のため、名前は upsert_page のまま提供（中身は create のみ）
 def upsert_page(
     notion,
     database_id,
@@ -42,37 +59,12 @@ def upsert_page(
     agency,
     published_at_iso,
 ):
-    dup_key = url
-    fetched_at = datetime.now(JST).isoformat()
-
-    props = {
-        "タイトル": {
-            "title": [{"text": {"content": title[:200]}}],
-        },
-        "URL": {"url": url},
-        "省庁": {
-            "rich_text": [{"text": {"content": agency}}],
-        },
-        "取得日時": {"date": {"start": fetched_at}},
-        "重複キー": {
-            "rich_text": [{"text": {"content": dup_key}}],
-        },
-    }
-
-    if published_at_iso:
-        props["公開日"] = {"date": {"start": published_at_iso}}
-
-    existing = find_page_by_dup_key(notion, database_id, dup_key)
-
-    if existing:
-        notion.pages.update(
-            page_id=existing["id"],
-            properties=props,
-        )
-        return "updated"
-
-    notion.pages.create(
-        parent={"database_id": database_id},
-        properties=props,
+    # まず「Notionに書ける」ことを優先。重複排除は次のステップで実装します。
+    return create_page(
+        notion,
+        database_id,
+        title=title,
+        url=url,
+        agency=agency,
+        published_at_iso=published_at_iso,
     )
-    return "created"
