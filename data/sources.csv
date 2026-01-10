@@ -1,2 +1,7 @@
 agency,type,url
-内閣官房,RSS,https://www.cas.go.jp/jp/rss.xml
+農林水産省,RSS,https://www.maff.go.jp/j/new/rss.xml
+厚生労働省,RSS,https://www.mhlw.go.jp/stf/news.rdf
+経済産業省,RSS,https://www.meti.go.jp/press/atom.xml
+国土交通省,RSS,https://www.mlit.go.jp/report/index.rdf
+環境省,RSS,https://www.env.go.jp/rss/index.rdf
+文部科学省,RSS,https://www.mext.go.jp/rss/00000001.xml
