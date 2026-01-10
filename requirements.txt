@@ -3,3 +3,4 @@ feedparser
 python-dateutil
 requests
 pandas
+beautifulsoup4
