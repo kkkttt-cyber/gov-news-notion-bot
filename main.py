@@ -126,20 +126,36 @@ def looks_like_rss_url(url: str) -> bool:
 
 
 def fetch_rss_items(url: str, limit: int = 50):
-    d = feedparser.parse(url)
+    """
+    RSS取得は feedparser 直fetchだと弾かれることがあるため、
+    requestsでUser-Agent付き取得 → feedparserに文字列を渡す方式にする。
+    """
+    headers = {
+        "User-Agent": "Mozilla/5.0 (compatible; GovNewsBot/1.0; +https://github.com/)",
+        "Accept": "application/rss+xml, application/xml;q=0.9, */*;q=0.8",
+    }
+
+    # まずは requests で取りに行く
+    r = requests.get(url, headers=headers, timeout=30)
+    r.raise_for_status()
+
+    # 取得した本文を feedparser に渡す
+    d = feedparser.parse(r.content)
+
     if not d.entries:
         return []
+
     items = []
     for e in d.entries[:limit]:
         link = getattr(e, "link", None) or getattr(e, "id", None)
         if not link:
             continue
+
         items.append(
             {
                 "title": getattr(e, "title", None),
                 "link": link,
-                "published": getattr(e, "published", None)
-                or getattr(e, "updated", None),
+                "published": getattr(e, "published", None) or getattr(e, "updated", None),
             }
         )
     return items
