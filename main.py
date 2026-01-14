@@ -21,6 +21,24 @@ DATE_PATTERNS = [
     re.compile(r"(令和\d{1,2}年\d{1,2}月\d{1,2}日)"),
 ]
 
+def parse_datetime_jst(text: str | None):
+    if not text:
+        return None
+    try:
+        norm = normalize_date_text(text, base_dt=datetime.now(JST))
+        dt = dateparser.parse(norm)
+
+        if not dt:
+            return None
+
+        if not dt.tzinfo:
+            dt = dt.replace(tzinfo=timezone.utc)
+
+        return dt.astimezone(JST)
+
+    except Exception:
+        return None
+
 
 def read_sources_csv(path: str):
     with open(path, "r", encoding="utf-8") as f:
