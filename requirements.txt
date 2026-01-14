@@ -4,3 +4,4 @@ python-dateutil
 requests
 pandas
 beautifulsoup4
+lxml
